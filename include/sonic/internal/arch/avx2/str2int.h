@@ -7,10 +7,10 @@
 
 namespace sonic_json {
 namespace internal {
+namespace avx2 {
 
-sonic_force_inline uint64_t str2int_avx2(const char* c, int& man_nd) {
-  return str2int_sse(c, man_nd);
-}
+using sse::simd_str2int;
 
+} // namespace avx2
 } // namespace internal
 } // namespace sonic_json

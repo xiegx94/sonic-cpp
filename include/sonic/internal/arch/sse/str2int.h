@@ -25,6 +25,8 @@ namespace sonic_json {
 
 namespace internal {
 
+namespace sse {
+
 #ifdef DATA_MADDUBS
 #undef DATA_MADDUBS
 #endif
@@ -53,7 +55,7 @@ namespace internal {
     data = _mm_madd_epi16(data, q);                            \
   }
 
-sonic_force_inline uint64_t str2int_sse(const char* c, int& man_nd) {
+sonic_force_inline uint64_t simd_str2int(const char* c, int& man_nd) {
   __m128i data = _mm_loadu_si128((const __m128i*)c);
   __m128i zero = _mm_setzero_si128();
   __m128i nine = _mm_set1_epi8(9);
@@ -140,5 +142,6 @@ sonic_force_inline uint64_t str2int_sse(const char* c, int& man_nd) {
          _mm_extract_epi32(data, 1);
 }
 
+}  // namespace sse
 }  // namespace internal
 }  // namespace sonic_json
