@@ -27,7 +27,7 @@
 #include "sonic/internal/atof_native.h"
 #include "sonic/internal/haswell.h"
 #include "sonic/internal/parse_number_normal_fast.h"
-#include "sonic/internal/simd_str2int.h"
+#include "sonic/internal/arch/simd_str2int.h"
 #include "sonic/internal/skip.h"
 #include "sonic/internal/unicode.h"
 #include "sonic/writebuffer.h"
@@ -352,7 +352,7 @@ class Parser {
   double_fract : {
     int fract_len = FLOATING_LONGEST_DIGITS - man_nd;
     if (fract_len > 0) {
-      uint64_t sum = internal::simd_str2int_sse(s + i, fract_len);
+      uint64_t sum = internal::simd_str2int(s + i, fract_len);
       const uint64_t pow10[17] = {1,
                                   10,
                                   100,
