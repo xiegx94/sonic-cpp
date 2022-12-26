@@ -1,6 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
-common_copts = ['-mavx2', '-mbmi', '-mpclmul']
+common_copts = ['-mavx2', '-mbmi', '-mpclmul', '-g']
 sanitize_copts = ['-fsanitize=address,undefined', '-fsanitize-recover=address']
 
 cc_library(
@@ -13,6 +13,16 @@ cc_library(
     hdrs = glob(["include/sonic/**/*.h"]),
     deps = [":string_view"],
     includes = ["include"],
+)
+
+cc_library(
+    name = "sonic-sse-str2int",
+    srcs = glob([
+            "src/**/*.cpp",
+            ]),
+    hdrs = glob(["include/**/*.h"]),
+    includes = ["include/"],
+    copts = common_copts,
 )
 
 cc_binary(
@@ -70,6 +80,7 @@ cc_test(
         ]),
     deps = [ 
         ":string_view",
+        ":sonic-sse-str2int",
         "@gtest//:gtest_main",
     ],
     data = glob([ "testdata/*.json"]),
