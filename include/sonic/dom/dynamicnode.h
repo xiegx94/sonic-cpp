@@ -28,7 +28,6 @@
 #include "sonic/error.h"
 #include "sonic/internal/ftoa.h"
 #include "sonic/internal/itoa.h"
-#include "sonic/internal/quote.h"
 #include "sonic/writebuffer.h"
 
 namespace sonic_json {

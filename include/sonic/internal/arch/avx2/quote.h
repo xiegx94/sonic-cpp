@@ -20,9 +20,9 @@
 #include <vector>
 
 #include "sonic/error.h"
-#include "sonic/internal/haswell.h"
+#include "sonic/internal/arch/avx2/base.h"
+#include "sonic/internal/arch/avx2/unicode.h"
 #include "sonic/internal/simd.h"
-#include "sonic/internal/unicode.h"
 #include "sonic/macro.h"
 
 #ifndef PAGE_SIZE
@@ -31,6 +31,7 @@
 
 namespace sonic_json {
 namespace internal {
+namespace avx2 {
 
 using namespace simd;
 
@@ -400,5 +401,6 @@ sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
   return dst;
 }
 
+}  // namespace avx2
 }  // namespace internal
 }  // namespace sonic_json

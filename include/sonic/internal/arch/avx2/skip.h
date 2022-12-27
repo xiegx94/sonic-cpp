@@ -19,16 +19,17 @@
 
 #include "sonic/dom/json_pointer.h"
 #include "sonic/error.h"
-#include "sonic/internal/haswell.h"
-#include "sonic/internal/quote.h"
+#include "sonic/internal/arch/avx2/base.h"
+#include "sonic/internal/arch/avx2/quote.h"
+#include "sonic/internal/arch/avx2/unicode.h"
 #include "sonic/internal/simd.h"
-#include "sonic/internal/unicode.h"
+#include "sonic/internal/utils.h"
 #include "sonic/macro.h"
 
 namespace sonic_json {
 namespace internal {
+namespace avx2 {
 
-using namespace haswell;
 
 static sonic_force_inline bool EqBytes4(const uint8_t *src, uint32_t target) {
   uint32_t val;
@@ -36,10 +37,6 @@ static sonic_force_inline bool EqBytes4(const uint8_t *src, uint32_t target) {
                 "SONICJSON_PADDING must be larger than 4 bytes");
   std::memcpy(&val, src, sizeof(uint32_t));
   return val == target;
-}
-
-static sonic_force_inline bool IsSpace(uint8_t ch) {
-  return ch == ' ' || ch == '\r' || ch == '\n' || ch == '\t';
 }
 
 sonic_force_inline uint64_t GetStringBits(const uint8_t *data,
@@ -55,7 +52,7 @@ sonic_force_inline uint64_t GetStringBits(const uint8_t *data,
     prev_escaped = 0;
   }
   uint64_t quote_bits = v.eq('"') & ~escaped;
-  uint64_t in_string = prefix_xor(quote_bits) ^ prev_instring;
+  uint64_t in_string = PrefixXor(quote_bits) ^ prev_instring;
   prev_instring = uint64_t(static_cast<int64_t>(in_string) >> 63);
   return in_string;
 }
@@ -73,7 +70,7 @@ sonic_force_inline uint8_t GetNextToken(const uint8_t *data, size_t &pos,
     }
     uint32_t next = static_cast<uint32_t>(vor.to_bitmask());
     if (next) {
-      pos += trailing_zeroes(next);
+      pos += TrailingZeroes(next);
       return data[pos];
     }
     pos += 32;
@@ -103,7 +100,7 @@ sonic_force_inline int SkipString(const uint8_t *data, size_t &pos,
     bs_bits = static_cast<uint32_t>((v == '\\').to_bitmask());
     quote_bits = static_cast<uint32_t>((v == '"').to_bitmask());
     if (((bs_bits - 1) & quote_bits) != 0) {
-      pos += trailing_zeroes(quote_bits) + 1;
+      pos += TrailingZeroes(quote_bits) + 1;
       return found ? kEscaped : kNormal;
     }
     if (bs_bits) {
@@ -111,7 +108,7 @@ sonic_force_inline int SkipString(const uint8_t *data, size_t &pos,
       found = true;
       quote_bits &= ~escaped;
       if (quote_bits) {
-        pos += trailing_zeroes(quote_bits) + 1;
+        pos += TrailingZeroes(quote_bits) + 1;
         return kEscaped;
       }
     }
@@ -149,16 +146,16 @@ sonic_force_inline bool SkipContainer(const uint8_t *data, size_t &pos,
     /* traverse each '}' */                                             \
     while (rbrace > 0) {                                                \
       rbrace_num++;                                                     \
-      lbrace_num = last_lbrace_num + count_ones((rbrace - 1) & lbrace); \
+      lbrace_num = last_lbrace_num + CountOnes((rbrace - 1) & lbrace); \
       bool is_closed = lbrace_num < rbrace_num;                         \
       if (is_closed) {                                                  \
         sonic_assert(rbrace_num == lbrace_num + 1);                     \
-        pos += trailing_zeroes(rbrace) + 1;                             \
+        pos += TrailingZeroes(rbrace) + 1;                             \
         return true;                                                    \
       }                                                                 \
       rbrace &= (rbrace - 1);                                           \
     }                                                                   \
-    lbrace_num = last_lbrace_num + count_ones(lbrace);                  \
+    lbrace_num = last_lbrace_num + CountOnes(lbrace);                  \
   }
     SKIP_LOOP();
     pos += 64;
@@ -167,6 +164,7 @@ sonic_force_inline bool SkipContainer(const uint8_t *data, size_t &pos,
   std::memcpy(buf, data + pos, len - pos);
   p = buf;
   SKIP_LOOP();
+#undef SKIP_LOOP
   return false;
 }
 
@@ -232,7 +230,7 @@ class SkipScanner {
         nonspace = GetNonSpaceBits(data + pos);
         if (nonspace) {
           nonspace_bits_end_ = pos + 64;
-          pos += trailing_zeroes(nonspace);
+          pos += TrailingZeroes(nonspace);
           nonspace_bits_ = nonspace;
           return data[pos++];
         } else {
@@ -253,7 +251,7 @@ class SkipScanner {
       pos = nonspace_bits_end_;
       goto found_space;
     }
-    pos = block_start + trailing_zeroes(nonspace);
+    pos = block_start + TrailingZeroes(nonspace);
     return data[pos++];
   }
 
@@ -274,7 +272,7 @@ class SkipScanner {
         nonspace = GetNonSpaceBits(data + pos);
         if (nonspace) {
           nonspace_bits_end_ = pos + 64;
-          pos += trailing_zeroes(nonspace);
+          pos += TrailingZeroes(nonspace);
           nonspace_bits_ = nonspace;
           return data[pos++];
         } else {
@@ -296,7 +294,7 @@ class SkipScanner {
         pos = nonspace_bits_end_;
         goto found_space;
       }
-      pos = block_start + trailing_zeroes(nonspace);
+      pos = block_start + TrailingZeroes(nonspace);
       return data[pos++];
     }
 
@@ -514,5 +512,6 @@ ParseResult GetOnDemand(StringView json,
   return ParseResult(kErrorNone, pos);
 }
 
+}  // namespace avx2
 }  // namespace internal
 }  // namespace sonic_json

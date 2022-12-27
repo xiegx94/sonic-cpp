@@ -16,21 +16,15 @@
 
 #pragma once
 
-#include <sonic/macro.h>
+
 #include <cstdint>
 
 namespace sonic_json {
-
 namespace internal {
 
-namespace sse {
+static sonic_force_inline bool IsSpace(uint8_t ch) {
+  return ch == ' ' || ch == '\r' || ch == '\n' || ch == '\t';
+}
 
-uint64_t simd_str2int(const char*c, int& mand_nd);
-
-}  // namespace sse
 }  // namespace internal
 }  // namespace sonic_json
-
-#define SIMD_INLINE sonic_force_inline
-#include "str2int_impl.h"
-

@@ -24,12 +24,12 @@
 #include "sonic/dom/handler.h"
 #include "sonic/dom/json_pointer.h"
 #include "sonic/error.h"
-#include "sonic/internal/atof_native.h"
-#include "sonic/internal/haswell.h"
-#include "sonic/internal/parse_number_normal_fast.h"
 #include "sonic/internal/arch/simd_str2int.h"
-#include "sonic/internal/skip.h"
-#include "sonic/internal/unicode.h"
+#include "sonic/internal/arch/simd_skip.h"
+#include "sonic/internal/arch/simd_quote.h"
+#include "sonic/internal/atof_native.h"
+#include "sonic/internal/parse_number_normal_fast.h"
+#include "sonic/internal/utils.h"
 #include "sonic/writebuffer.h"
 
 namespace sonic_json {

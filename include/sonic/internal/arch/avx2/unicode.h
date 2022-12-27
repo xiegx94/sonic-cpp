@@ -19,15 +19,15 @@
 #include <cstdint>
 #include <cstring>
 
-#include "sonic/internal/haswell.h"
+#include "sonic/internal/arch/avx2/base.h"
 #include "sonic/internal/simd.h"
 #include "sonic/macro.h"
 
 namespace sonic_json {
 namespace internal {
+namespace avx2 {
 
 using namespace simd;
-using namespace haswell;
 
 static const uint32_t digit_to_val32[886] = {
     0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
@@ -287,11 +287,11 @@ struct StringBlock {
     return ((quote_bits - 1) & unescaped_bits) != 0;
   }
   sonic_force_inline int QuoteIndex() {
-    return haswell::trailing_zeroes(quote_bits);
+    return TrailingZeroes(quote_bits);
   }
-  sonic_force_inline int BsIndex() { return haswell::trailing_zeroes(bs_bits); }
+  sonic_force_inline int BsIndex() { return TrailingZeroes(bs_bits); }
   sonic_force_inline int UnescapedIndex() {
-    return haswell::trailing_zeroes(unescaped_bits);
+    return TrailingZeroes(unescaped_bits);
   }
 
   uint32_t bs_bits;
@@ -326,11 +326,12 @@ sonic_force_inline uint64_t GetEscapedBranchless(uint64_t &prev_escaped,
   const uint64_t even_bits = 0x5555555555555555ULL;
   uint64_t odd_sequence_starts = backslash & ~even_bits & ~follows_escape;
   uint64_t sequences_starting_on_even_bits;
-  prev_escaped = add_overflow(odd_sequence_starts, backslash,
+  prev_escaped = AddOverflow(odd_sequence_starts, backslash,
                               &sequences_starting_on_even_bits);
   uint64_t invert_mask = sequences_starting_on_even_bits << 1;
   return (even_bits ^ invert_mask) & follows_escape;
 }
 
+}  // namespace avx2
 }  // namespace internal
 }  // namespace sonic_json
