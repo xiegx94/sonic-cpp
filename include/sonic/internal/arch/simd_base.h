@@ -15,7 +15,6 @@ SONIC_USING_ARCH_FUNC(LeadingZeroes);
 SONIC_USING_ARCH_FUNC(CountOnes);
 SONIC_USING_ARCH_FUNC(AddOverflow);
 SONIC_USING_ARCH_FUNC(PrefixXor);
-SONIC_USING_ARCH_FUNC(IsAscii);
 SONIC_USING_ARCH_FUNC(Xmemcpy);
 
 } // namespace internal

@@ -26,5 +26,7 @@
   #endif
 #elif defined(__ARM_NEON) || defined(__ARM_NEON__)
   #define SONIC_HAVE_NEON
+#elif defined(__ARM_FEATURE_SVE)
+  #define SONIC_HAVE_NEON
 #endif
 
