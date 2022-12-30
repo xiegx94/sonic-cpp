@@ -86,6 +86,31 @@ cc_test(
 )
 
 cc_test(
+    name = "unittest-arm",
+    srcs = glob([
+            "tests/*.h",
+            "tests/*.cpp",
+            "include/sonic/*",
+            "include/sonic/**/*",
+        ]),
+    deps = [ 
+        ":string_view",
+        "@gtest//:gtest_main",
+    ],
+    data = glob([ "testdata/*.json"]),
+    linkopts = sanitize_copts + [
+        '-lstdc++fs',
+        '-fstack-protector-all',
+        '-fsanitize-link-c++-runtime'
+    ],
+    copts = sanitize_copts + [
+        '-O3', '-g', '-UNDEBUG', '-std=c++14', '-march=armv8-a',
+        '-fstack-protector-all',
+        '-Iinclude', '-Wall', '-Wextra', '-Werror',
+    ],
+)
+
+cc_test(
     name = "unittest-gcc-coverage",
     srcs = glob([
         "tests/*.cpp",

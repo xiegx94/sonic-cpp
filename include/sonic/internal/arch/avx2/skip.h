@@ -22,7 +22,7 @@
 #include "sonic/internal/arch/avx2/base.h"
 #include "sonic/internal/arch/avx2/quote.h"
 #include "sonic/internal/arch/avx2/unicode.h"
-#include "sonic/internal/simd.h"
+#include "sonic/internal/arch/avx2/simd.h"
 #include "sonic/internal/utils.h"
 #include "sonic/macro.h"
 

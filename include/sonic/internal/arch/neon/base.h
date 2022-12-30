@@ -20,6 +20,10 @@
 #include "sonic/macro.h"
 #include <arm_neon.h>
 
+#ifndef VEC_LEN
+#define VEC_LEN 16
+#endif
+
 namespace sonic_json {
 namespace internal {
 namespace neon {
@@ -58,13 +62,13 @@ sonic_force_inline bool AddOverflow(uint64_t value1, uint64_t value2,
 }
 
 sonic_force_inline uint64_t PrefixXor(uint64_t bitmask) {
-  bitmask ^= bitmak << 1;
-  bitmask ^= bitmak << 2;
-  bitmask ^= bitmak << 4;
-  bitmask ^= bitmak << 8;
-  bitmask ^= bitmak << 16;
-  bitmask ^= bitmak << 32;
-  return bitemask;
+  bitmask ^= bitmask << 1;
+  bitmask ^= bitmask << 2;
+  bitmask ^= bitmask << 4;
+  bitmask ^= bitmask << 8;
+  bitmask ^= bitmask << 16;
+  bitmask ^= bitmask << 32;
+  return bitmask;
 }
 
 // sonic_force_inline bool IsAscii(const simd8x64<uint8_t>& input) {

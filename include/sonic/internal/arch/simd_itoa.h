@@ -9,8 +9,8 @@
 namespace sonic_json {
 namespace internal {
 
-SONIC_USING_ARCH_FUNC(U64toa);
-SONIC_USING_ARCH_FUNC(I64toa);
+SONIC_USING_ARCH_FUNC(Utoa_8);
+SONIC_USING_ARCH_FUNC(Utoa_16);
 
 } // namespace internal
 } // namespace sonic_json

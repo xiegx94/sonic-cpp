@@ -33,8 +33,6 @@ namespace sonic_json {
 namespace internal {
 namespace neon {
 
-using namespace simd;
-
 // kEscapedMap maps the escaped char into origin char, as follows:
 // ['/' ] = '/',
 // ['"' ] = '"',
@@ -119,7 +117,7 @@ sonic_force_inline size_t parseStringInplace(uint8_t *&src, SonicError &err) {
   find_and_move:
     // Copy the next n bytes, and find the backslash and quote in them.
     uint8x16_t v = vld1q_u8(src);
-    block = StrngBlock::Find(v);
+    block = StringBlock::Find(v);
     // If the next thing is the end quote, copy and return
     if (block.HasQuoteFirst()) {
       // we encountered quotes first. Move dst to point to quotes and exit

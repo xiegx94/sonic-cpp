@@ -308,9 +308,9 @@ struct StringBlock {
 sonic_force_inline StringBlock StringBlock::Find(const uint8_t *src) {
   uint8x16_t v = vld1q_u8(src);
   return {
-      to_bitmask(vceqq_u8(v, vdupq_n_s8('\\'))),
-      to_bitmask(vceqq_u8(v, vdupq_n_s8('"'))),
-      to_bitmask(vcleq_u8(v, vdupq_n_s8('\x1f'))),
+      to_bitmask(vceqq_u8(v, vdupq_n_u8('\\'))),
+      to_bitmask(vceqq_u8(v, vdupq_n_u8('"'))),
+      to_bitmask(vcleq_u8(v, vdupq_n_u8('\x1f'))),
   };
 }
 
