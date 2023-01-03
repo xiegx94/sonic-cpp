@@ -353,7 +353,7 @@ class Parser {
     int fract_len = FLOATING_LONGEST_DIGITS - man_nd;
     if (fract_len > 0) {
       uint64_t sum = internal::simd_str2int(s + i, fract_len);
-      const uint64_t pow10[17] = {1,
+      const uint64_t pow10[18] = {1,
                                   10,
                                   100,
                                   1000,
@@ -369,7 +369,8 @@ class Parser {
                                   10000000000000,
                                   100000000000000,
                                   1000000000000000,
-                                  10000000000000000};
+                                  10000000000000000,
+                                  100000000000000000,};
       man = man * pow10[fract_len] + sum;
       man_nd += fract_len;
       i += fract_len;

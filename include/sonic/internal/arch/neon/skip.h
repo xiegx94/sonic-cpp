@@ -97,7 +97,7 @@ sonic_force_inline int SkipString(const uint8_t *data, size_t &pos,
     }
     if (bs_bits) {
       ret = kEscaped;
-      pos += ((TrailingZeroes(quote_bits) >> 2) + 2);
+      pos += ((TrailingZeroes(bs_bits) >> 2) + 2);
       while (pos < len) {
         if (data[pos] == '\\') {
           pos += 2;
@@ -137,7 +137,7 @@ sonic_force_inline bool SkipContainer(const uint8_t *data, size_t &pos,
     int quote_idx = VEC_LEN;
     if (quote_bits) {
       quote_idx = TrailingZeroes(quote_bits);
-      not_in_str_mask = not_in_str_mask >> (64 - quote_idx);
+      not_in_str_mask = quote_idx == 0 ? 0 : not_in_str_mask >> (64 - quote_idx);
       quote_idx = (quote_idx >> 2) + 1; // point to next char after '"'
     }
     uint64_t to_one_mask = 0x8888888888888888ull;
@@ -439,9 +439,6 @@ class SkipScanner {
     return -kParseErrorInvalidChar;
   }
 
- private:
-  size_t nonspace_bits_end_{0};
-  uint64_t nonspace_bits_{0};
 };
 
 template <typename JPStringType>

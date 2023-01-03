@@ -30,6 +30,7 @@ sonic_force_inline uint64_t simd_str2int(const char* c, int& man_nd) {
   int i = 0;
   while (c[i] >= '0' && c[i] <= '9' && i < man_nd) {
     sum = sum * 10 + (c[i] - '0');
+    i++;
   }
   man_nd = i;
   return sum;

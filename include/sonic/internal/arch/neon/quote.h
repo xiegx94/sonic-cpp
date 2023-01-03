@@ -29,6 +29,10 @@
 #define PAGE_SIZE 4096
 #endif
 
+#ifndef VEC_LEN
+#error "define VEC_LEN firstly!"
+#endif
+
 namespace sonic_json {
 namespace internal {
 namespace neon {
@@ -84,7 +88,7 @@ sonic_force_inline size_t parseStringInplace(uint8_t *&src, SonicError &err) {
       return 0;
     }
     if (!block.HasBackslash()) {
-      src += 16;
+      src += VEC_LEN;
       goto find;
     }
 
@@ -137,8 +141,8 @@ sonic_force_inline size_t parseStringInplace(uint8_t *&src, SonicError &err) {
       /* they are the same. Since they can't co-occur, it means we
        * encountered neither. */
       vst1q_u8(dst, v);
-      src += 32;
-      dst += 32;
+      src += VEC_LEN;
+      dst += VEC_LEN;
       goto find_and_move;
     }
     while (1) {
@@ -354,8 +358,8 @@ sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
   uint64_t mm;
   int cn;
 
-  /* 32-byte loop */
-  while (nb >= 16) {
+  /* VEC_LEN byte loop */
+  while (nb >= VEC_LEN) {
     /* check for matches */
     // TODO: optimize: exploit the simd bitmask in the escape block.
     if ((mm = CopyAndGetEscapMask128(src, dst)) != 0) {
@@ -365,7 +369,7 @@ sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
       DoEscape(src, dst, nb);
     } else {
       /* move to next block */
-      MOVE_N_CHARS(src, 16);
+      MOVE_N_CHARS(src, VEC_LEN);
     }
   }
 
@@ -384,7 +388,7 @@ sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
       src_r = tmp_src;
     }
     while (nb > 0) {
-      mm = CopyAndGetEscapMask128(src_r, dst) & (0xFFFFFFFF >> (16 - nb));
+      mm = CopyAndGetEscapMask128(src_r, dst) & (0xFFFFFFFFFFFFFFFF >> ((VEC_LEN - nb)<<2));
       if (mm) {
         cn = TrailingZeroes(mm) >> 2;
         MOVE_N_CHARS(src_r, cn);

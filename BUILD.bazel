@@ -16,6 +16,26 @@ cc_library(
 )
 
 cc_binary(
+    name = "benchmark-arm",
+    srcs = glob([
+            "benchmark/*.cpp",
+            "benchmark/*.h",
+            "benchmark/*.hpp",
+    ]),
+    data = glob(["testdata/*.json"]),
+    deps = [
+        ":sonic-cpp",
+        "@google_benchmark//:benchmark",
+        "@rapidjson",
+        "@cJSON",
+        "@yyjson",
+        "@simdjson",
+    ],
+    copts = ['-O3', ' -march=armv8-a', '-DNDEBUG', '-std=c++17'],
+    linkopts = ['-lstdc++fs'],
+)
+
+cc_binary(
     name = "benchmark",
     srcs = glob([
             "benchmark/*.cpp",
