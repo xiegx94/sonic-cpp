@@ -17,21 +17,25 @@
 #pragma once
 
 #include <immintrin.h>
+#include <sonic/dom/json_pointer.h>
+#include <sonic/error.h>
+#include <sonic/internal/utils.h>
+#include <sonic/macro.h>
 
-#include "sonic/dom/json_pointer.h"
-#include "sonic/error.h"
-#include "sonic/internal/arch/avx2/base.h"
-#include "sonic/internal/arch/avx2/quote.h"
-#include "sonic/internal/arch/avx2/unicode.h"
-#include "sonic/internal/arch/avx2/simd.h"
-#include "sonic/internal/utils.h"
-#include "sonic/macro.h"
+#include "base.h"
+#include "quote.h"
+#include "simd.h"
+#include "unicode.h"
 
 #include "../common/skip_common.h"
 
+#ifndef VEC_LEN
+#error "You should define VEC_LEN before including skip.h"
+#endif
+
 namespace sonic_json {
 namespace internal {
-namespace avx2 {
+namespace sse {
 
 using sonic_json::internal::common::EqBytes4;
 using sonic_json::internal::common::SkipLiteral;
@@ -59,9 +63,9 @@ sonic_force_inline uint64_t GetStringBits(const uint8_t *data,
 template <size_t N>
 sonic_force_inline uint8_t GetNextToken(const uint8_t *data, size_t &pos,
                                         size_t len, const char (&tokens)[N]) {
-  while (pos + 32 <= len) {
-    simd256<uint8_t> v(data + pos);
-    simd256<bool> vor(false);
+  while (pos + VEC_LEN <= len) {
+    simd128<uint8_t> v(data + pos);
+    simd128<bool> vor(false);
     for (size_t i = 0; i < N - 1; i++) {
       vor |= (v == (uint8_t)(tokens[i]));
     }
@@ -70,7 +74,7 @@ sonic_force_inline uint8_t GetNextToken(const uint8_t *data, size_t &pos,
       pos += TrailingZeroes(next);
       return data[pos];
     }
-    pos += 32;
+    pos += VEC_LEN;
   }
   while (pos < len) {
     for (size_t i = 0; i < N - 1; i++) {
@@ -92,10 +96,10 @@ sonic_force_inline int SkipString(const uint8_t *data, size_t &pos,
   uint64_t quote_bits;
   uint64_t escaped, bs_bits, prev_escaped = 0;
   bool found = false;
-  while (pos + 32 <= len) {
-    const simd::simd256<uint8_t> v(data + pos);
-    bs_bits = static_cast<uint32_t>((v == '\\').to_bitmask());
-    quote_bits = static_cast<uint32_t>((v == '"').to_bitmask());
+  while (pos + VEC_LEN <= len) {
+    const simd::simd128<uint8_t> v(data + pos);
+    bs_bits = static_cast<uint64_t>((v == '\\').to_bitmask());
+    quote_bits = static_cast<uint64_t>((v == '"').to_bitmask());
     if (((bs_bits - 1) & quote_bits) != 0) {
       pos += TrailingZeroes(quote_bits) + 1;
       return found ? kEscaped : kNormal;
@@ -109,7 +113,7 @@ sonic_force_inline int SkipString(const uint8_t *data, size_t &pos,
         return kEscaped;
       }
     }
-    pos += 32;
+    pos += VEC_LEN;
   }
   while (pos < len) {
     if (data[pos] == '\\') {
@@ -464,6 +468,6 @@ class SkipScanner {
   uint64_t nonspace_bits_{0};
 };
 
-}  // namespace avx2
+}  // namespace sse
 }  // namespace internal
 }  // namespace sonic_json

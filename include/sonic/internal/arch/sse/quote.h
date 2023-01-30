@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <arm_neon.h>
 #include <cstring>
 #include <vector>
 #include <sonic/error.h>
@@ -24,6 +23,7 @@
 
 #include "base.h"
 #include "unicode.h"
+#include "simd.h"
 #include "../common/quote_common.h"
 #include "../common/quote_tables.h"
 
@@ -32,12 +32,14 @@
 #endif
 
 #ifndef VEC_LEN
-#error "You should define VEC_LEN before including quote.h!"
+#error "You should define VEC_LEN before including quote.h"
 #endif
 
 namespace sonic_json {
 namespace internal {
-namespace neon {
+namespace sse {
+
+using namespace simd;
 
 sonic_force_inline size_t parseStringInplace(uint8_t *&src, SonicError &err) {
 #define SONIC_REPEAT8(v) {v v v v v v v v}
@@ -90,8 +92,12 @@ sonic_force_inline size_t parseStringInplace(uint8_t *&src, SonicError &err) {
 
   find_and_move:
     // Copy the next n bytes, and find the backslash and quote in them.
-    uint8x16_t v = vld1q_u8(src);
-    block = StringBlock::Find(v);
+    simd128<uint8_t> v(src);
+    block = StringBlock{
+        static_cast<uint16_t>((v == '\\').to_bitmask()),  // bs_bits
+        static_cast<uint16_t>((v == '"').to_bitmask()),   // quote_bits
+        static_cast<uint16_t>((v <= '\x1f').to_bitmask()),
+    };
     // If the next thing is the end quote, copy and return
     if (block.HasQuoteFirst()) {
       // we encountered quotes first. Move dst to point to quotes and exit
@@ -110,7 +116,7 @@ sonic_force_inline size_t parseStringInplace(uint8_t *&src, SonicError &err) {
     if (!block.HasBackslash()) {
       /* they are the same. Since they can't co-occur, it means we
        * encountered neither. */
-      vst1q_u8(dst, v);
+      v.store(dst);
       src += VEC_LEN;
       dst += VEC_LEN;
       goto find_and_move;
@@ -125,34 +131,25 @@ sonic_force_inline size_t parseStringInplace(uint8_t *&src, SonicError &err) {
 #undef SONIC_REPEAT8
 }
 
-static sonic_force_inline uint64_t CopyAndGetEscapMask128(const char *src,
+static sonic_force_inline int CopyAndGetEscapMask128(const char *src,
                                                      char *dst) {
-  uint8x16_t v = vld1q_u8(reinterpret_cast<const uint8_t *>(src));
-  vst1q_u8(reinterpret_cast<uint8_t *>(dst), v);
-
-  uint8x16_t m1 = vceqq_u8(v, vdupq_n_u8('\\'));
-  uint8x16_t m2 = vceqq_u8(v, vdupq_n_u8('"'));
-  uint8x16_t m3 = vcltq_u8(v, vdupq_n_u8('\x20'));
-
-  uint8x16_t m4 = vorrq_u8(m1, m2);
-  uint8x16_t m5 = vorrq_u8(m3, m4);
-
-  return to_bitmask(m5);
+  simd128<uint8_t> v(reinterpret_cast<const uint8_t *>(src));
+  v.store(reinterpret_cast<uint8_t *>(dst));
+  return ((v < '\x20') | (v == '\\') | (v == '"')).to_bitmask();
 }
 
 sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
   *dst++ = '"';
   sonic_assert(nb < (1ULL << 32));
-  uint64_t mm;
+  uint32_t mm;
   int cn;
 
-  /* VEC_LEN byte loop */
+  /* VEC_LEN-byte loop */
   while (nb >= VEC_LEN) {
     /* check for matches */
     // TODO: optimize: exploit the simd bitmask in the escape block.
     if ((mm = CopyAndGetEscapMask128(src, dst)) != 0) {
-      // cn = __builtin_ctz(mm);
-      cn = TrailingZeroes(mm) >> 2;
+      cn = __builtin_ctz(mm);
       MOVE_N_CHARS(src, cn);
       DoEscape(src, dst, nb);
     } else {
@@ -162,13 +159,13 @@ sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
   }
 
   if (nb > 0) {
-    char tmp_src[64];
+    char tmp_src[VEC_LEN * 2];
     const char *src_r;
 #ifdef SONIC_USE_SANITIZE
     if (0) {
 #else
     /* This code would cause address sanitizer report heap-buffer-overflow. */
-    if (((size_t)(src) & (PAGE_SIZE - 1)) <= (PAGE_SIZE - 64)) {
+    if (((size_t)(src) & (PAGE_SIZE - 1)) <= (PAGE_SIZE - VEC_LEN * 2)) {
       src_r = src;
 #endif
     } else {
@@ -176,9 +173,9 @@ sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
       src_r = tmp_src;
     }
     while (nb > 0) {
-      mm = CopyAndGetEscapMask128(src_r, dst) & (0xFFFFFFFFFFFFFFFF >> ((VEC_LEN - nb)<<2));
+      mm = CopyAndGetEscapMask128(src_r, dst) & (0xFFFF >> (VEC_LEN - nb));
       if (mm) {
-        cn = TrailingZeroes(mm) >> 2;
+        cn = __builtin_ctz(mm);
         MOVE_N_CHARS(src_r, cn);
         DoEscape(src_r, dst, nb);
       } else {
@@ -192,6 +189,6 @@ sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
   return dst;
 }
 
-}  // namespace neon
+}  // namespace sse
 }  // namespace internal
 }  // namespace sonic_json

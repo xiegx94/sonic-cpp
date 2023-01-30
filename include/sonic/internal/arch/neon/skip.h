@@ -25,21 +25,18 @@
 #include "sonic/internal/utils.h"
 #include "sonic/macro.h"
 
+#include "../common/skip_common.h"
+
 namespace sonic_json {
 namespace internal {
 namespace neon {
 
+using sonic_json::internal::common::EqBytes4;
+using sonic_json::internal::common::SkipLiteral;
+
 #ifndef VEC_LEN
 #error "Define vector length firstly!"
 #endif
-
-static sonic_force_inline bool EqBytes4(const uint8_t *src, uint32_t target) {
-  uint32_t val;
-  static_assert(sizeof(uint32_t) <= SONICJSON_PADDING,
-                "SONICJSON_PADDING must be larger than 4 bytes");
-  std::memcpy(&val, src, sizeof(uint32_t));
-  return val == target;
-}
 
 // GetNextToken find the next characters in tokens and update the position to
 // it.
@@ -185,36 +182,6 @@ sonic_force_inline bool SkipArray(const uint8_t *data, size_t &pos,
 sonic_force_inline bool SkipObject(const uint8_t *data, size_t &pos,
                                    size_t len) {
   return SkipContainer(data, pos, len, '{', '}');
-}
-
-sonic_force_inline bool SkipLiteral(const uint8_t *data, size_t &pos,
-                                    size_t len, uint8_t token) {
-  static constexpr uint32_t kNullBin = 0x6c6c756e;
-  static constexpr uint32_t kTrueBin = 0x65757274;
-  static constexpr uint32_t kFalseBin =
-      0x65736c61;  // the binary of 'alse' in false
-  auto start = data + pos - 1;
-  auto end = data + len;
-  switch (token) {
-    case 't':
-      if (start + 4 <= end && EqBytes4(start, kTrueBin)) {
-        pos += 3;
-        return true;
-      };
-      break;
-    case 'n':
-      if (start + 4 <= end && EqBytes4(start, kNullBin)) {
-        pos += 3;
-        return true;
-      };
-      break;
-    case 'f':
-      if (start + 5 <= end && EqBytes4(start + 1, kFalseBin)) {
-        pos += 4;
-        return true;
-      }
-  }
-  return false;
 }
 
 sonic_force_inline uint8_t SkipNumber(const uint8_t *data, size_t &pos,
@@ -441,21 +408,6 @@ class SkipScanner {
 
 };
 
-template <typename JPStringType>
-ParseResult GetOnDemand(StringView json,
-                        const GenericJsonPointer<JPStringType> &path,
-                        StringView &target) {
-  SkipScanner scan;
-  size_t pos = 0;
-  long start = scan.GetOnDemand(json, pos, path);
-  if (start < 0) {
-    target = "";
-    return ParseResult(SonicError(-start), pos - 1);
-  }
-  target = StringView(json.data() + start, pos - start);
-  return ParseResult(kErrorNone, pos);
-}
-
-}  // namespace avx2
+}  // namespace neon
 }  // namespace internal
 }  // namespace sonic_json

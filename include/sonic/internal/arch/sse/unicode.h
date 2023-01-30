@@ -17,81 +17,67 @@
 
 #pragma once
 
-
 #include <cstdint>
 #include <cstring>
 #include <sonic/macro.h>
 
 #include "base.h"
 #include "simd.h"
+#include "../common/unicode_common.h"
 
 namespace sonic_json {
 namespace internal {
-namespace neon {
+namespace sse {
 
+using namespace simd;
 using sonic_json::internal::common::handle_unicode_codepoint;
 
 struct StringBlock {
  public:
   sonic_force_inline static StringBlock Find(const uint8_t *src);
-  sonic_force_inline static StringBlock Find(uint8x16_t& v);
-  sonic_force_inline bool HasQuoteFirst() const {
+  sonic_force_inline bool HasQuoteFirst() {
     return (((bs_bits - 1) & quote_bits) != 0) && !HasUnescaped();
   }
-  sonic_force_inline bool HasBackslash() const {
+  sonic_force_inline bool HasBackslash() {
     return ((quote_bits - 1) & bs_bits) != 0;
   }
-  sonic_force_inline bool HasUnescaped() const {
+  sonic_force_inline bool HasUnescaped() {
     return ((quote_bits - 1) & unescaped_bits) != 0;
   }
-  sonic_force_inline int QuoteIndex() const {
-    // return TrailingZeroes(quote_bits);
-    return TrailingZeroes(quote_bits) >> 2;
+  sonic_force_inline int QuoteIndex() {
+    return TrailingZeroes(quote_bits);
   }
-  sonic_force_inline int BsIndex() const {
-    // return TrailingZeroes(bs_bits);
-    return TrailingZeroes(bs_bits) >> 2;
-  }
-  sonic_force_inline int UnescapedIndex() const {
-    // return TrailingZeroes(unescaped_bits);
-    return TrailingZeroes(unescaped_bits) >> 2;
+  sonic_force_inline int BsIndex() { return TrailingZeroes(bs_bits); }
+  sonic_force_inline int UnescapedIndex() {
+    return TrailingZeroes(unescaped_bits);
   }
 
-  uint64_t bs_bits;
-  uint64_t quote_bits;
-  uint64_t unescaped_bits;
+  uint16_t bs_bits;
+  uint16_t quote_bits;
+  uint16_t unescaped_bits;
 };
 
 sonic_force_inline StringBlock StringBlock::Find(const uint8_t *src) {
-  uint8x16_t v = vld1q_u8(src);
+  simd128<uint8_t> v(src);
   return {
-      to_bitmask(vceqq_u8(v, vdupq_n_u8('\\'))),
-      to_bitmask(vceqq_u8(v, vdupq_n_u8('"'))),
-      to_bitmask(vcleq_u8(v, vdupq_n_u8('\x1f'))),
-  };
-}
-
-sonic_force_inline StringBlock StringBlock::Find(uint8x16_t &v) {
-  return {
-      to_bitmask(vceqq_u8(v, vdupq_n_u8('\\'))),
-      to_bitmask(vceqq_u8(v, vdupq_n_u8('"'))),
-      to_bitmask(vcleq_u8(v, vdupq_n_u8('\x1f'))),
+      static_cast<uint16_t>((v == '\\').to_bitmask()),
+      static_cast<uint16_t>((v == '"').to_bitmask()),
+      static_cast<uint16_t>((v <= '\x1f').to_bitmask()),
   };
 }
 
 sonic_force_inline uint64_t GetNonSpaceBits(const uint8_t *data) {
-  uint8x16_t v = vld1q_u8(data);
-  uint8x16_t m1 = vceqq_u8(v, vdupq_n_u8(' '));
-  uint8x16_t m2 = vceqq_u8(v, vdupq_n_u8('\t'));
-  uint8x16_t m3 = vceqq_u8(v, vdupq_n_u8('\n'));
-  uint8x16_t m4 = vceqq_u8(v, vdupq_n_u8('\r'));
-  
-  uint8x16_t m5 = vorrq_u8(m1, m2);
-  uint8x16_t m6 = vorrq_u8(m3, m4);
-  uint8x16_t m7 = vorrq_u8(m5, m6);
-  uint8x16_t m8 = vmvnq_u8(m7);
+  const simd::simd8x64<uint8_t> v(data);
+  const auto whitespace_table =
+      simd128<uint8_t>::repeat_16(' ', 100, 100, 100, 17, 100, 113, 2, 100,
+                                  '\t', '\n', 112, 100, '\r', 100, 100);
 
-  return to_bitmask(m8);
+  uint64_t space = v.eq({_mm_shuffle_epi8(whitespace_table, v.chunks[0]),
+                         _mm_shuffle_epi8(whitespace_table, v.chunks[1]),
+                         _mm_shuffle_epi8(whitespace_table, v.chunks[2]),
+                         _mm_shuffle_epi8(whitespace_table, v.chunks[3]),
+                         });
+  return ~space;
 }
 
 sonic_force_inline uint64_t GetEscapedBranchless(uint64_t &prev_escaped,
@@ -107,6 +93,6 @@ sonic_force_inline uint64_t GetEscapedBranchless(uint64_t &prev_escaped,
   return (even_bits ^ invert_mask) & follows_escape;
 }
 
-}  // namespace neon
+}  // namespace sse
 }  // namespace internal
 }  // namespace sonic_json
