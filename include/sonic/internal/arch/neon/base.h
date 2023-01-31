@@ -80,6 +80,6 @@ sonic_force_inline void Xmemcpy(void* dst_, const void* src_, size_t chunks) {
   std::memcpy(dst_, src_, chunks * ChunkSize);
 }
 
-}  // namespace haswell
+}  // namespace neon
 }  // namespace internal
 }  // namespace sonic_json

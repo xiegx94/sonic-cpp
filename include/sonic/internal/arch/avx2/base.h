@@ -17,8 +17,9 @@
 
 #pragma once
 
-#include "sonic/internal/arch/avx2/simd.h"
-#include "sonic/macro.h"
+#include <sonic/macro.h>
+
+#include "simd.h"
 
 namespace sonic_json {
 namespace internal {
@@ -160,6 +161,6 @@ sonic_force_inline void Xmemcpy<16>(void* dst_, const void* src_,
   }
 }
 
-}  // namespace haswell
+}  // namespace avx2
 }  // namespace internal
 }  // namespace sonic_json

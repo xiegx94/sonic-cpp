@@ -16,13 +16,10 @@
 
 #pragma once
 
-
 #include <cstdint>
 
 namespace sonic_json {
-
 namespace internal {
-
 namespace neon {
 
 sonic_force_inline uint64_t simd_str2int(const char* c, int& man_nd) {

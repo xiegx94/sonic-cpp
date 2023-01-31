@@ -52,17 +52,17 @@ struct StringBlock {
     return TrailingZeroes(unescaped_bits);
   }
 
-  uint16_t bs_bits;
-  uint16_t quote_bits;
-  uint16_t unescaped_bits;
+  uint32_t bs_bits;
+  uint32_t quote_bits;
+  uint32_t unescaped_bits;
 };
 
 sonic_force_inline StringBlock StringBlock::Find(const uint8_t *src) {
   simd128<uint8_t> v(src);
   return {
-      static_cast<uint16_t>((v == '\\').to_bitmask()),
-      static_cast<uint16_t>((v == '"').to_bitmask()),
-      static_cast<uint16_t>((v <= '\x1f').to_bitmask()),
+      static_cast<uint32_t>((v == '\\').to_bitmask()),
+      static_cast<uint32_t>((v == '"').to_bitmask()),
+      static_cast<uint32_t>((v <= '\x1f').to_bitmask()),
   };
 }
 

@@ -17,7 +17,6 @@
 
 #pragma once
 
-
 #include <cstdint>
 #include <cstring>
 #include <sonic/macro.h>

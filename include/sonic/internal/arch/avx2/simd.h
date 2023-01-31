@@ -18,14 +18,16 @@
 #pragma once
 
 #include <immintrin.h>
-
+#include <sonic/macro.h>
 #include <cstdint>
 
 #if !__AVX2__
 #error "AVX2 instruction set required. Missing option -mavx2 ?"
 #endif
 
-#include "sonic/macro.h"
+#ifndef VEC_LEN
+#define VEC_LEN 32
+#endif
 
 namespace sonic_json {
 namespace internal {
@@ -108,7 +110,7 @@ struct base128 {
     return Child(_mm_set1_epi8(_value));
   }
   static sonic_force_inline Child repeat_16(REPEAT16_ARGS(T)) {
-    return Child(REPEAT16_ARGS(), REPEAT16_ARGS());
+    return Child(REPEAT16_ARGS());
   }
   template <int N = 1>
   sonic_force_inline Child prev(const Child prev_chunk) const {

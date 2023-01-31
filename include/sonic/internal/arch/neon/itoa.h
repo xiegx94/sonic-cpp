@@ -17,15 +17,12 @@
 #pragma once
 
 #include <arm_neon.h>
-#include <cstdint>
+#include <sonic/macro.h>
 #include <cstddef>
-
-#include "sonic/macro.h"
+#include <cstdint>
 
 namespace sonic_json {
-
 namespace internal {
-
 namespace neon {
 
 // Convert num {abcd} to {axxxx, abxxxx, abcxxxx, abcdxxxx}
@@ -90,7 +87,5 @@ static sonic_force_inline char *Utoa_16(uint64_t val, char *out) {
 }
 
 }  // namepsace neon
-
 }  // namespace internal
-
 }  // namespace sonic_json
