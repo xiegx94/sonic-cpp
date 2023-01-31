@@ -23,6 +23,7 @@
 
 #include "base.h"
 #include "simd.h"
+#include "../common/unicode_common.h"
 
 namespace sonic_json {
 namespace internal {
