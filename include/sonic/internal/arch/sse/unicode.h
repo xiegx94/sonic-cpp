@@ -17,9 +17,9 @@
 
 #pragma once
 
+#include <immintrin.h>
 #include <sonic/macro.h>
 
-#include <immintrin.h>
 #include <cstdint>
 #include <cstring>
 
