@@ -37,9 +37,9 @@
 #define INCLUDE_ARCH_FILE(file) SONIC_STRINGIFY(sse/file)
 #endif
 
-#if defined(SONIC_HAVE_SVE)
-#define SONIC_USING_ARCH_FUNC(func) using sve::func
-#define INCLUDE_ARCH_FILE(file) SONIC_STRINGIFY(sve/file)
+#if defined(SONIC_HAVE_NEON)
+#define SONIC_USING_ARCH_FUNC(func) using neon::func
+#define INCLUDE_ARCH_FILE(file) SONIC_STRINGIFY(neon/file)
 #endif
 
 #elif defined(SONIC_DYNAMIC_DISPATCH)
@@ -47,9 +47,9 @@
 #if defined(__x86_64__)
 #define SONIC_USING_ARCH_FUNC(func)
 #define INCLUDE_ARCH_FILE(file) SONIC_STRINGIFY(x86_ifuncs/file)
-#elif defined(__arm__)
-#define SONIC_USING_ARCH_FUNC(func) using sse::func
-#define INCLUDE_ARCH_FILE(file) SONIC_STRINGIFY(sse/file)
+#elif defined(SONIC_HAVE_NEON)
+#define SONIC_USING_ARCH_FUNC(func) using neon::func
+#define INCLUDE_ARCH_FILE(file) SONIC_STRINGIFY(neon/file)
 #endif
 
 #endif

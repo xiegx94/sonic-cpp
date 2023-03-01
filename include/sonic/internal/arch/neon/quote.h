@@ -32,9 +32,38 @@
 #define PAGE_SIZE 4096
 #endif
 
+#ifdef __GNUC__
+#if defined(__SANITIZE_THREAD__) || defined(__SANITIZE_ADDRESS__) || \
+    defined(__SANITIZE_LEAK__) || defined(__SANITIZE_UNDEFINED__)
+#ifndef SONIC_USE_SANITIZE
+#define SONIC_USE_SANITIZE
+#endif
+#endif
+#endif
+
+#if defined(__clang__)
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer) || \
+    __has_feature(memory_sanitizer) ||                                     \
+    __has_feature(undefined_behavior_sanitizer) ||                         \
+    __has_feature(leak_sanitizer)
+#ifndef SONIC_USE_SANITIZE
+#define SONIC_USE_SANITIZE
+#endif
+#endif
+#endif
+#endif
+
 #ifndef VEC_LEN
 #error "You should define VEC_LEN before including quote.h!"
 #endif
+
+#define MOVE_N_CHARS(src, N) \
+  {                          \
+    (src) += (N);            \
+    nb -= (N);               \
+    dst += (N);              \
+  }
 
 namespace sonic_json {
 namespace internal {
@@ -197,3 +226,5 @@ sonic_static_inline char *Quote(const char *src, size_t nb, char *dst) {
 }  // namespace neon
 }  // namespace internal
 }  // namespace sonic_json
+
+#undef MOVE_N_CHARS
