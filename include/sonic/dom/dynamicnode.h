@@ -233,6 +233,21 @@ class DNode : public GenericNode<DNode<Allocator>> {
   using BaseNode::HasMember;
 
   /**
+   * @brief Find from given poistion.
+   * @param key string view of the string key
+   * @param hint search start from this object member iterator, (hint, end), [begin, hint]
+   * @retval MemberEnd() not found
+   * @retval others iterator for found member
+  */
+  sonic_force_inline ConstMemberIterator FindHint(StringView key, ConstMemberIterator hint) const noexcept {
+    return findHintImpl(key, hint);
+  }
+
+  sonic_force_inline MemberIterator FindHint(StringView key, ConstMemberIterator hint) noexcept {
+    return findHintImpl(key, hint);
+  }
+
+  /**
    * @brief Create a map to trace all members of this object.
    * @param alloc allocator that maintain this node's memory
    * @retval true successful
@@ -578,6 +593,29 @@ class DNode : public GenericNode<DNode<Allocator>> {
       }
     }
     return const_cast<MemberIterator>(it);
+  }
+
+  sonic_force_inline MemberIterator findHintImpl(StringView key, ConstMemberIterator hint) const noexcept {
+    auto end = this->MemberEnd();
+    auto begin = this->MemberBegin()
+
+    // if `hint` is out range, search from begin position
+    auto start = (hint == end) ? begin : hint + 1;
+    // [start, end)
+    for (auto it = start; it != end; ++it) {
+      if (it->name.GetStringView() == key) {
+        return const_cast<MemberIterator>(it);
+      }
+    }
+    // [begin, start)
+    for (auto it = begin; it != start; ++it) {
+      if (it->name.GetStringView() == key) {
+        return const_cast<MemberIterator>(it);
+      }
+    }
+
+    // not found
+    return const_cast<MemberIterator>(end);
   }
 
   sonic_force_inline DNode& findValueImpl(StringView key) const noexcept {
