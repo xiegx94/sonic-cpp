@@ -235,15 +235,18 @@ class DNode : public GenericNode<DNode<Allocator>> {
   /**
    * @brief Find from given poistion.
    * @param key string view of the string key
-   * @param hint search start from this object member iterator, (hint, end), [begin, hint]
+   * @param hint search start from this object member iterator, (hint, end),
+   * [begin, hint]
    * @retval MemberEnd() not found
    * @retval others iterator for found member
-  */
-  sonic_force_inline ConstMemberIterator FindHint(StringView key, ConstMemberIterator hint) const noexcept {
+   */
+  sonic_force_inline ConstMemberIterator
+  FindHint(StringView key, ConstMemberIterator hint) const noexcept {
     return findHintImpl(key, hint);
   }
 
-  sonic_force_inline MemberIterator FindHint(StringView key, ConstMemberIterator hint) noexcept {
+  sonic_force_inline MemberIterator
+  FindHint(StringView key, ConstMemberIterator hint) noexcept {
     return findHintImpl(key, hint);
   }
 
@@ -595,12 +598,13 @@ class DNode : public GenericNode<DNode<Allocator>> {
     return const_cast<MemberIterator>(it);
   }
 
-  sonic_force_inline MemberIterator findHintImpl(StringView key, ConstMemberIterator hint) const noexcept {
+  sonic_force_inline MemberIterator
+  findHintImpl(StringView key, ConstMemberIterator hint) const noexcept {
     auto end = this->MemberEnd();
     auto begin = this->MemberBegin()
 
-    // if `hint` is out range, search from begin position
-    auto start = (hint == end) ? begin : hint + 1;
+                 // if `hint` is out range, search from begin position
+                 auto start = (hint == end) ? begin : hint + 1;
     // [start, end)
     for (auto it = start; it != end; ++it) {
       if (it->name.GetStringView() == key) {
