@@ -771,27 +771,10 @@ class Parser {
 
     c = scan.SkipSpace(json_buf_, pos_);
     if (!found) {
-      switch (c) {
-        case '{': {
-          if (!SkipObject(json_buf_, pos_, len_)) {
-            goto err_invalid_char;
-          }
-          break;
-        }
-        case '[': {
-          if (!SkipArray(json_buf_, pos_, len_)) {
-            goto err_invalid_char;
-          }
-          break;
-        }
-        case '"': {
-          if (!SkipString(json_buf_, pos_, len_)) {
-            goto err_invalid_char;
-          }
-          break;
-        }
+      if (!scan.SkipOne(json_buf_, pos_, len_)) {
+        goto err_invalid_char;
       }
-      c = GetNextToken(json_buf_, pos_, len_, "\"");
+      c = GetNextToken(json_buf_, pos_, len_, "\"}");
       if (c != '"') {
         goto err_invalid_char;
       }
