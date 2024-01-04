@@ -168,6 +168,7 @@ class SchemaHandler {
   sonic_force_inline bool Key(StringView s) {
     if (parent_node_) {
       if (found_node_count_ >= parent_node_->Size()) {
+        cur_node_ = nullptr;
         return false;
       }
       auto m = parent_node_->FindMember(s);
@@ -241,9 +242,11 @@ class SchemaHandler {
     }
     // all object is need create
     NodeType *obj_ptr;
+    void *obj_member_ptr;
     size_t old;
     if (parent_ == 0) {
       obj_ptr = parent_st_.back();
+      obj_member_ptr = &st_[0];
       parent_st_.pop_back();
       // resotre parent node ptr
       parent_node_ = parent_st_.back();
@@ -253,6 +256,7 @@ class SchemaHandler {
       parent_ = 0;
     } else {
       obj_ptr = &(st_[parent_]);
+      obj_member_ptr = &st_[parent_ + 1];
       np_ = parent_ + 1;
       parent_ = obj_ptr->o.next.ofs;
     }
@@ -262,7 +266,7 @@ class SchemaHandler {
       void *mem = obj.template containerMalloc<MemberType>(pairs, *alloc_);
       obj.setChildren(mem);
       internal::Xmemcpy<sizeof(MemberType)>(
-          (void *)obj.getObjChildrenFirstUnsafe(), (void *)(&obj + 1), pairs);
+          (void *)obj.getObjChildrenFirstUnsafe(), obj_member_ptr, pairs);
     } else {
       obj.setChildren(nullptr);
     }
@@ -272,8 +276,10 @@ class SchemaHandler {
   sonic_force_inline bool EndArray(uint32_t count) {
     // Assert cur_node != nullptr!!
     NodeType* arr_ptr;
+    void* arr_element_ptr;
     if (parent_ == 0) { //
       arr_ptr = parent_node_;
+      arr_element_ptr = &st_[1];
       cur_node_ = parent_node_;
       parent_node_ = parent_st_.back();
       parent_st_.pop_back();
@@ -281,6 +287,7 @@ class SchemaHandler {
       parent_ = 0;
     } else {
       arr_ptr = &st_[parent_];
+      arr_element_ptr = &st_[parent_ + 1];
       np_ = parent_ + 1;
       parent_ = arr_ptr->o.next.ofs;
     }
@@ -289,10 +296,11 @@ class SchemaHandler {
     if (count) {
       arr.setChildren(arr.template containerMalloc<NodeType>(count, *alloc_));
       internal::Xmemcpy<sizeof(NodeType)>(
-          (void *)arr.getArrChildrenFirstUnsafe(), (void *)(&arr + 1), count);
+          (void *)arr.getArrChildrenFirstUnsafe(), arr_element_ptr, count);
     } else {
       arr.setChildren(nullptr);
     }
+    std::cout << arr.Dump() << std::endl;
     return true;
   }
 

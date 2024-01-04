@@ -20,11 +20,12 @@ int main() {
       "b": {
         "a":[[[]], []],
         "b":1,
-        "c":3,
+        "c":{"a":{"b":1}, "c":0, "d":[[[]]]},
         "d":[[[]], [1], 1],
         "e":null,
         "f":false
-      }
+      },
+      "c":0
     }
   )";
 
@@ -32,6 +33,9 @@ int main() {
   doc.Parse(json_schema);
 
   doc.ParseSchema(json);
+  if (doc.HasParseError()) {
+    std::cout << "json: " << json.substr(doc.GetErrorOffset()) << std::endl;
+  }
   std::cout << "schema a: " << doc["a"].GetInt64() << std::endl;
   std::cout << "schema : " << doc.Dump() << std::endl;
 
