@@ -23,6 +23,7 @@
 #include "sonic/dom/flags.h"
 #include "sonic/dom/handler.h"
 #include "sonic/dom/json_pointer.h"
+#include "sonic/dom/schema_handler.h"
 #include "sonic/error.h"
 #include "sonic/internal/arch/simd_quote.h"
 #include "sonic/internal/arch/simd_skip.h"
@@ -73,6 +74,18 @@ class Parser {
     }
     return ParseResult{err_, static_cast<size_t>(pos_)};
   }
+  
+  template <unsigned parseFlags = kParseDefault, typename SAX>
+  sonic_force_inline ParseResult ParseSchema(char *data, size_t len, SAX &sax) {
+    reset();
+    json_buf_ = reinterpret_cast<uint8_t *>(data);
+    len_ = len;
+    parseSchemaImpl<parseFlags>(sax);
+    if (!err_ && hasTrailingChars()) {
+      err_ = kParseErrorInvalidChar;
+    }
+    return ParseResult{err_, static_cast<size_t>(pos_)};
+  }
 
   // parseLazyImpl only mark the json positions, and not parse any more, even
   // the keys.
@@ -94,49 +107,57 @@ class Parser {
   sonic_force_inline void setParseError(SonicError err) { err_ = err; }
 
   template <typename SAX>
-  sonic_force_inline void parseNull(SAX &sax) {
+  sonic_force_inline bool parseNull(SAX &sax) {
     const static uint32_t kNullBin = 0x6c6c756e;
-    if (internal::EqBytes4(json_buf_ + pos_ - 1, kNullBin) && sax.Null()) {
+    if (internal::EqBytes4(json_buf_ + pos_ - 1, kNullBin)) {
       pos_ += 3;
-      return;
+      return sax.Null();
     }
     setParseError(kParseErrorInvalidChar);
+    return false;
   }
 
   template <typename SAX>
-  sonic_force_inline void parseFalse(SAX &sax) {
+  sonic_force_inline bool parseFalse(SAX &sax) {
     const static uint32_t kFalseBin =
         0x65736c61;  // the binary of 'alse' in false
-    if (internal::EqBytes4(json_buf_ + pos_, kFalseBin) && sax.Bool(false)) {
+    if (internal::EqBytes4(json_buf_ + pos_, kFalseBin)) {
       pos_ += 4;
-      return;
+      return sax.Bool(false);
     }
     setParseError(kParseErrorInvalidChar);
+    return false;
   }
 
   template <typename SAX>
-  sonic_force_inline void parseTrue(SAX &sax) {
+  sonic_force_inline bool parseTrue(SAX &sax) {
     constexpr static uint32_t kTrueBin = 0x65757274;
-    if (internal::EqBytes4(json_buf_ + pos_ - 1, kTrueBin) && sax.Bool(true)) {
+    if (internal::EqBytes4(json_buf_ + pos_ - 1, kTrueBin)) {
       pos_ += 3;
-      return;
+      return sax.Bool(true);
     }
     setParseError(kParseErrorInvalidChar);
+    return false;
   }
 
   template <typename SAX>
-  sonic_force_inline void parseStrInPlace(SAX &sax) {
+  sonic_force_inline bool parseStrInPlace(SAX &sax) {
     uint8_t *src = json_buf_ + pos_;
     uint8_t *sdst = src;
     size_t n = internal::parseStringInplace(src, err_);
     pos_ = src - json_buf_;
-    if (!sax.String(StringView(reinterpret_cast<char *>(sdst), n))) {
-      setParseError(kParseErrorInvalidChar);
-      return;
-    }
-    return;
+    return sax.String(StringView(reinterpret_cast<char *>(sdst), n));
   }
 
+  template <typename SAX>
+  sonic_force_inline bool parseKeyInPlace(SAX &sax) {
+    uint8_t *src = json_buf_ + pos_;
+    uint8_t *sdst = src;
+    size_t n = internal::parseStringInplace(src, err_);
+    pos_ = src - json_buf_;
+    return sax.Key(StringView(reinterpret_cast<char *>(sdst), n));
+  }
+  
   sonic_force_inline bool carry_one(char c, uint64_t &sum) const {
     uint8_t d = static_cast<uint8_t>(c - '0');
     if (d > 9) {
@@ -207,13 +228,13 @@ class Parser {
   }
 
   template <typename SAX>
-  sonic_force_inline void parseNumber(SAX &sax) {
+  sonic_force_inline bool parseNumber(SAX &sax) {
 #define FLOATING_LONGEST_DIGITS 17
 #define RETURN_SET_ERROR_CODE(error_code) \
   {                                       \
     pos_ = i;                             \
     err_ = error_code;                    \
-    return;                               \
+    return true;                          \
   }
 #define CHECK_DIGIT()                              \
   if (sonic_unlikely(s[i] < '0' || s[i] > '9')) {  \
@@ -459,7 +480,7 @@ class Parser {
       RETURN_SET_ERROR_CODE(error_code);
     }
 
-    return;
+    return true;
 
 #undef CHECK_DIGIT
   }
@@ -545,6 +566,237 @@ class Parser {
     if (sonic_unlikely(c != ':')) goto err_invalid_char;
 
     c = scan.SkipSpace(json_buf_, pos_);
+    switch (c) {
+      case '{': {
+        sax.StartObject();
+        depth.push_back(kObjMask);
+        c = scan.SkipSpace(json_buf_, pos_);
+        if (c == '}') {
+          sax.EndObject(0);
+          goto scope_end;
+        }
+        goto obj_key;
+      }
+      case '[': {
+        sax.StartArray();
+        depth.push_back(kArrMask);
+        c = scan.SkipSpace(json_buf_, pos_);
+        if (c == ']') {
+          sax.EndArray(0);
+          goto scope_end;
+        }
+        goto arr_val;
+      }
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case '-':
+        parseNumber(sax);
+        sonic_check_err();
+        break;
+      case 't':
+        parseTrue(sax);
+        sonic_check_err();
+        break;
+      case 'f':
+        parseFalse(sax);
+        sonic_check_err();
+        break;
+      case 'n':
+        parseNull(sax);
+        sonic_check_err();
+        break;
+      case '"':
+        parseStrInPlace(sax);
+        sonic_check_err();
+        break;
+      default:
+        goto err_invalid_char;
+    }
+    c = scan.SkipSpace(json_buf_, pos_);
+
+  obj_cont:
+    depth.back()++;
+    if (c == ',') {
+      c = scan.SkipSpace(json_buf_, pos_);
+      goto obj_key;
+    }
+    if (sonic_unlikely(c != '}')) {
+      goto err_invalid_char;
+    }
+    sax.EndObject(depth.back());
+
+  scope_end:
+    sonic_check_err();
+    depth.pop_back();
+    if (sonic_unlikely(depth.empty())) {
+      goto doc_end;
+    }
+    c = scan.SkipSpace(json_buf_, pos_);
+    if (depth.back() & kArrMask) {
+      goto arr_cont;
+    }
+    goto obj_cont;
+
+  arr_val:
+    switch (c) {
+      case '{': {
+        sax.StartObject();
+        depth.push_back(kObjMask);
+        c = scan.SkipSpace(json_buf_, pos_);
+        if (c == '}') {
+          sax.EndObject(0);
+          goto scope_end;
+        }
+        goto obj_key;
+      }
+      case '[': {
+        sax.StartArray();
+        depth.push_back(kArrMask);
+        c = scan.SkipSpace(json_buf_, pos_);
+        if (c == ']') {
+          sax.EndArray(0);
+          goto scope_end;
+        }
+        goto arr_val;
+      }
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case '-':
+        parseNumber(sax);
+        sonic_check_err();
+        break;
+      case 't':
+        parseTrue(sax);
+        sonic_check_err();
+        break;
+      case 'f':
+        parseFalse(sax);
+        sonic_check_err();
+        break;
+      case 'n':
+        parseNull(sax);
+        sonic_check_err();
+        break;
+      case '"':
+        parseStrInPlace(sax);
+        sonic_check_err();
+        break;
+      default:
+        goto err_invalid_char;
+    }
+    c = scan.SkipSpace(json_buf_, pos_);
+
+  arr_cont:
+    depth.back()++;
+    if (c == ',') {
+      c = scan.SkipSpace(json_buf_, pos_);
+      goto arr_val;
+    }
+    if (sonic_likely(c == ']')) {
+      sax.EndArray(depth.back() & (kArrMask - 1));
+      goto scope_end;
+    }
+    goto err_invalid_char;
+
+  doc_end:
+    return;
+  err_invalid_char:
+    err_ = kParseErrorInvalidChar;
+    return;
+  }
+
+    template <unsigned parseFlags, typename SAX>
+  sonic_force_inline void parseSchemaImpl(SAX &sax) {
+#define sonic_check_err()   \
+  if (err_ != kErrorNone) { \
+    goto err_invalid_char;  \
+  }
+
+    using namespace sonic_json::internal;
+    // TODO (liuq19): vector is a temporary choice, will optimize in future.
+    std::vector<uint32_t> depth;
+    const uint32_t kArrMask = 1ull << 31;
+    const uint32_t kObjMask = 0;
+    bool found = true;
+
+    uint8_t c = scan.SkipSpace(json_buf_, pos_);
+    switch (c) {
+      case '[': {
+        sax.StartArray();
+        depth.push_back(kArrMask);
+        c = scan.SkipSpace(json_buf_, pos_);
+        if (c == ']') {
+          sax.EndArray(0);
+          goto scope_end;
+        }
+        goto arr_val;
+      };
+      case '{': {
+        sax.StartObject();
+        depth.push_back(kObjMask);
+        c = scan.SkipSpace(json_buf_, pos_);
+        if (c == '}') {
+          sax.EndObject(0);
+          goto scope_end;
+        }
+        goto obj_key;
+      }
+      default:
+        parsePrimitives(sax);
+        goto doc_end;
+    };
+
+  obj_key:
+    if (sonic_unlikely(c != '"')) goto err_invalid_char;
+    found = parseKeyInPlace(sax);
+    sonic_check_err();
+    c = scan.SkipSpace(json_buf_, pos_);
+    if (sonic_unlikely(c != ':')) goto err_invalid_char;
+
+    c = scan.SkipSpace(json_buf_, pos_);
+    if (!found) {
+      switch (c) {
+        case '{': {
+          if (!SkipObject(json_buf_, pos_, len_)) {
+            goto err_invalid_char;
+          }
+          break;
+        }
+        case '[': {
+          if (!SkipArray(json_buf_, pos_, len_)) {
+            goto err_invalid_char;
+          }
+          break;
+        }
+        case '"': {
+          if (!SkipString(json_buf_, pos_, len_)) {
+            goto err_invalid_char;
+          }
+          break;
+        }
+      }
+      c = GetNextToken(json_buf_, pos_, len_, "\"");
+      if (c != '"') {
+        goto err_invalid_char;
+      }
+      goto obj_key;
+    }
     switch (c) {
       case '{': {
         sax.StartObject();
