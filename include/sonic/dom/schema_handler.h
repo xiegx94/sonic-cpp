@@ -166,7 +166,7 @@ class SchemaHandler {
   }
 
   sonic_force_inline bool Key(StringView s) {
-    if (parent_node_) {
+    if (parent_node_ && parent_node_->IsObject()) {
       if (found_node_count_ >= parent_node_->Size()) {
         cur_node_ = nullptr;
         return false;
@@ -232,7 +232,7 @@ class SchemaHandler {
   }
 
   sonic_force_inline bool EndObject(uint32_t pairs) {
-    if (parent_node_) {
+    if (parent_node_ && parent_node_->IsObject()) {
       parent_node_ = parent_st_.back();
       parent_st_.pop_back();
       cur_node_ = nullptr;
@@ -300,7 +300,6 @@ class SchemaHandler {
     } else {
       arr.setChildren(nullptr);
     }
-    std::cout << arr.Dump() << std::endl;
     return true;
   }
 
