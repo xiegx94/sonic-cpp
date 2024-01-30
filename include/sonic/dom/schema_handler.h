@@ -302,7 +302,7 @@ class SchemaHandler {
     }
     return true;
   }
-
+  static constexpr bool check_key_return = true;
  private:
   friend class GenericDocument<NodeType>;
 

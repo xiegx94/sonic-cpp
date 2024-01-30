@@ -236,7 +236,7 @@ class GenericDocument : public NodeType {
       parse_result_ = kErrorNoMem;
       return *this;
     }
-    parse_result_ = p.template ParseSchema<parseFlags>(schema_str_, len, sax);
+    parse_result_ = p.template Parse<parseFlags>(schema_str_, len, sax);
     return *this;
   }
 
