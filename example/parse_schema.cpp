@@ -35,7 +35,7 @@ int main() {
   )";
   
   std::string json = R"(
-{"description_metas":[[], {"create_datetime":"2020-06-05T15:14:43+0800"}], "it":1, "obj":{"a":{"b":1}, "b":[1]}}
+    []
   )";
 
   sonic_json::Document doc;

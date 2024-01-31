@@ -243,7 +243,6 @@ class SchemaHandler {
     // all object is need create
     NodeType *obj_ptr;
     void *obj_member_ptr;
-    size_t old;
     if (parent_ == 0) {
       obj_ptr = parent_st_.back();
       obj_member_ptr = &st_[0];
