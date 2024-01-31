@@ -86,12 +86,12 @@ TEST(ParseSchema, SuccessBasic) {
   );
   TestSuccess(
     R"({"obj":{}})",
-    R"({"Obj":{"a":1}})",
+    R"({"obj":{"a":1}})",
     R"({"obj":{"a":1}})"
   );
   TestSuccess(
     R"({"obj":{"a":2}})",
-    R"({"Obj":{"a":1, "b":}})",
+    R"({"obj":{"a":1, "b":1}})",
     R"({"obj":{"a":1}})"
   );
   TestSuccess(
@@ -119,7 +119,7 @@ TEST(ParseSchema, SuccessBasic) {
         "dbl2null": 3.0, "dbl2obj": 3.0, "dbl2arr": 3.0,
         "str2bool":"string", "str2int":"string", "str2dbl": "string", "str2str": "string",
         "str2null": "string", "str2obj": "string", "str2arr": "string",
-        "null2bool":null, "null2int":null1, "null2dbl": null, "null2str": null,
+        "null2bool":null, "null2int":null, "null2dbl": null, "null2str": null,
         "null2null": null, "null2obj": null, "null2arr": null,
         "obj2bool": {"a":1}, "obj2int":{"a":1}, "obj2dbl": {"a":1}, "obj2str":{"a":1},
         "obj2null": {"a":1}, "obj2obj": {"a":1}, "obj2arr": {"a":1},
