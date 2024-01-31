@@ -157,7 +157,7 @@ class SchemaHandler {
 
   sonic_force_inline bool Double(double val) noexcept {
     if (cur_node_) {
-      if (cur_node_->IsDouble()) cur_node_->SetDouble(val);
+      cur_node_->SetDouble(val);
       return true;
     }
     SONIC_ADD_NODE();

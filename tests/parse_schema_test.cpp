@@ -35,7 +35,8 @@ void TestSuccess(const std::string schema, const std::string json, const std::st
     EXPECT_FALSE(doc.HasParseError()) << "failed parsing expect: " << expect << std::endl;
     if (expect_doc.HasParseError()) return;
 
-    EXPECT_TRUE(doc == expect_doc);
+    EXPECT_TRUE(doc == expect_doc) << "doc: " << doc.Dump() << std::endl
+                                   << "expect doc: " << expect_doc.Dump() << std::endl;
 
 }
 
@@ -57,8 +58,7 @@ TEST(ParseSchema, SuccessBasic) {
             "array": []
         },
         "array": [{}, []]
-    })",
-  )
+    })"
+  );
 }
-
 }
