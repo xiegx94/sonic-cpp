@@ -149,14 +149,14 @@ TEST(ParseSchema, SuccessBasic) {
 }
 
 TEST(ParseSchema, FailedBasic) {
-  TestFailed(R"(null)", R"(nul)",);
-  TestFailed(R"(null)", R"(fals)",);
-  TestFailed(R"(null)", R"(tru)",);
-  TestFailed(R"(null)", R"(1.2.3)",);
-  TestFailed(R"(null)", R"(12345678901234567890)",);
-  TestFailed(R"(null)", R"("string)",);
-  TestFailed(R"(null)", R"({"obj":})",);
-  TestFailed(R"(null)", R"([null,])",);
+  TestFailed(R"(null)", R"(nul)");
+  TestFailed(R"(null)", R"(fals)");
+  TestFailed(R"(null)", R"(tru)");
+  TestFailed(R"(null)", R"(1.2.3)");
+  TestFailed(R"(null)", R"(12345678901234567890)");
+  TestFailed(R"(null)", R"("string)");
+  TestFailed(R"(null)", R"({"obj":})");
+  TestFailed(R"(null)", R"([null,])");
 }
 
 }  // namespace
