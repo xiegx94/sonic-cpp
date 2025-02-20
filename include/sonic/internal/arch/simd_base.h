@@ -29,6 +29,8 @@ SONIC_USING_ARCH_FUNC(LeadingZeroes);
 SONIC_USING_ARCH_FUNC(CountOnes);
 SONIC_USING_ARCH_FUNC(PrefixXor);
 SONIC_USING_ARCH_FUNC(Xmemcpy);
+SONIC_USING_ARCH_FUNC(MemcmpEqShort);
+SONIC_USING_ARCH_FUNC(MemcmpShort);
 
 }  // namespace internal
 }  // namespace sonic_json
