@@ -182,6 +182,8 @@ sonic_force_inline void Xmemcpy<16>(void* dst_, const void* src_,
 namespace {
 static sonic_force_inline bool in_page_32(const void* a, const void* b) {
 #ifdef SONIC_USE_SANITIZE
+  (void)a;
+  (void)b;
   return false;
 #else
   static constexpr size_t VecLen = 32;
