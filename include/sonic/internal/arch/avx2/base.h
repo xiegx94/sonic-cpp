@@ -19,6 +19,8 @@
 
 #include <sonic/macro.h>
 
+#include <cstring>
+
 #include "simd.h"
 
 #ifdef __GNUC__
