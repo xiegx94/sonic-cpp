@@ -19,9 +19,10 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "sonic/dom/parser.h"
+#include "include/sonic/internal/arch/avx2/base.h"
+#include "include/sonic/internal/arch/sonic_cpu_feature.h"
 
-#ifndef SONIC_DYNAMIC_DISPATCH
+#if defined(SONIC_HAVE_AVX2) && !defined(SONIC_DYNAMIC_DISPATCH)
 namespace {
 
 using namespace sonic_json;
