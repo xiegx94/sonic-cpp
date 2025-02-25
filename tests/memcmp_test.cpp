@@ -48,11 +48,11 @@ bool is_correct(int a, int b) {
 }
 
 TEST(MemcmpShort, Basic) {
-  EXPECT_EQ(0, internal::MemcmpShort("", "", 0));
-  EXPECT_EQ(0, internal::MemcmpShort("123", "1", 0));
-  EXPECT_EQ(0, internal::MemcmpShort("123", "1", 1));
+  EXPECT_EQ(0, internal::avx2::MemcmpShort("", "", 0));
+  EXPECT_EQ(0, internal::avx2::MemcmpShort("123", "1", 0));
+  EXPECT_EQ(0, internal::avx2::MemcmpShort("123", "1", 1));
   EXPECT_EQ(-1,
-            internal::MemcmpShort("12345678901234567890123456789012345",
+            internal::avx2::MemcmpShort("12345678901234567890123456789012345",
                                   "22345678901234567890123456789012345", 35));
   for (int i = 0; i < 1024; ++i) {
     std::string str1 = random_string(i);
@@ -60,13 +60,13 @@ TEST(MemcmpShort, Basic) {
     EXPECT_EQ(str1.size(), str2.size());
     EXPECT_TRUE(is_correct(
         std::memcmp(str1.data(), str2.data(), str1.size()),
-        internal::MemcmpShort(str1.data(), str2.data(), str1.size())))
+        internal::avx2::MemcmpShort(str1.data(), str2.data(), str1.size())))
         << "str1 is: " << str1 << std::endl
         << "str2 is: " << str2 << std::endl
         << "std::memcmp is: "
         << std::memcmp(str1.data(), str2.data(), str1.size()) << std::endl
-        << "internal::MemcmpShort is: "
-        << internal::MemcmpShort(str1.data(), str2.data(), str1.size())
+        << "internal::avx2::MemcmpShort is: "
+        << internal::avx2::MemcmpShort(str1.data(), str2.data(), str1.size())
         << std::endl;
   }
 
@@ -76,14 +76,14 @@ TEST(MemcmpShort, Basic) {
       std::string str1 = str;
       std::string str2 = str;
       EXPECT_EQ(0,
-                internal::MemcmpShort(str1.data(), str2.data(), str1.size()));
+                internal::avx2::MemcmpShort(str1.data(), str2.data(), str1.size()));
       str1[j] = '1';
       str2[j] = '2';
-      EXPECT_TRUE(internal::MemcmpShort(str1.data(), str2.data(), str1.size()) <
+      EXPECT_TRUE(internal::avx2::MemcmpShort(str1.data(), str2.data(), str1.size()) <
                   0);
       str1[j] = '2';
       str2[j] = '1';
-      EXPECT_TRUE(internal::MemcmpShort(str1.data(), str2.data(), str1.size()) >
+      EXPECT_TRUE(internal::avx2::MemcmpShort(str1.data(), str2.data(), str1.size()) >
                   0);
     }
   }
@@ -101,25 +101,25 @@ TEST(MemcmpShort, CrossPage) {
     for (int j = 0; j < i; ++j) {
       std::memcpy(a, str.data(), i);
       std::memcpy(b, str.data(), i);
-      EXPECT_EQ(0, internal::MemcmpShort(a, b, i));
+      EXPECT_EQ(0, internal::avx2::MemcmpShort(a, b, i));
       a[j] = '1';
       b[j] = '2';
-      EXPECT_TRUE(internal::MemcmpShort(a, b, i) < 0);
+      EXPECT_TRUE(internal::avx2::MemcmpShort(a, b, i) < 0);
       a[j] = '2';
       b[j] = '1';
-      EXPECT_TRUE(internal::MemcmpShort(a, b, i) > 0);
+      EXPECT_TRUE(internal::avx2::MemcmpShort(a, b, i) > 0);
     }
   }
 }
 
 void success_helper(const void* a, const void* b, size_t s) {
-  EXPECT_TRUE(internal::MemcmpEqShort(a, b, s))
+  EXPECT_TRUE(internal::avx2::MemcmpEqShort(a, b, s))
       << "a is: " << std::string((char*)a, s) << std::endl
       << "b is: " << std::string((char*)b, s) << std::endl;
 }
 
 void failed_helper(const void* a, const void* b, size_t s) {
-  EXPECT_FALSE(internal::MemcmpEqShort(a, b, s))
+  EXPECT_FALSE(internal::avx2::MemcmpEqShort(a, b, s))
       << "a is: " << std::string((char*)a, s) << std::endl
       << "b is: " << std::string((char*)b, s) << std::endl;
 }
