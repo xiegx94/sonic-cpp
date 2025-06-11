@@ -1,0 +1,99 @@
+name: Test
+on: [push, pull_request]
+
+jobs:
+  test-llvm:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        llvm_version: ['11', '16.0.4', '17']
+        tool: ['cmake', 'bazel']
+        arch: [westmere, haswell]
+        exclude:
+            - tool: 'cmake'
+              arch: westmere
+    env:
+      CC: clang
+      CXX: clang++
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: ${{ matrix.llvm_version }}
+
+      - name: Setup bazel
+        if: matrix.tool == 'bazel'
+        uses: jwlawson/actions-setup-bazel@v2
+        with:
+          bazel-version: "latest"
+
+      - name: Setup cmake
+        if: matrix.tool == 'cmake'
+        uses: jwlawson/actions-setup-cmake@v1
+        with:
+          cmake-version: "latest"
+
+      - name: Run ${{ matrix.arch }} Test Use Bazel
+        if: matrix.tool == 'bazel'
+        run : |
+          bash ./scripts/unittest.sh -c --arch=${{ matrix.arch }}
+
+      - name: Run Test Use CMake
+        if: matrix.tool == 'cmake'
+        run: |
+          bash ./scripts/run_cmake.sh
+
+  test-gcc:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc_version: ['9', '12']
+        tool: ['cmake', 'bazel']
+        arch: [westmere, haswell]
+        dispatch: [static, dynamic]
+        exclude:
+          - tool: 'bazel'
+            arch: haswell
+            dispatch: dynamic
+          - tool: 'cmake'
+            dispatch: dynamic
+          - tool: 'cmake'
+            arch: westmere
+
+    env:
+      CC: gcc-${{ matrix.gcc_version }}
+      CXX: g++-${{ matrix.gcc_version}}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GCC
+        run: |
+          sudo apt-get install -y gcc-${{ matrix.gcc_version }} g++-${{ matrix.gcc_version }}
+
+      - name: Setup bazel
+        if: matrix.tool == 'bazel'
+        uses: jwlawson/actions-setup-bazel@v2
+        with:
+          bazel-version: "latest"
+
+      - name: Setup cmake
+        if: matrix.tool == 'cmake'
+        uses: jwlawson/actions-setup-cmake@v1
+        with:
+          cmake-version: "latest"
+
+      - name: Run ${{ matrix.arch }} ${{ matrix.dispatch }} Test Use Bazel
+        if: matrix.tool == 'bazel'
+        run : |
+          bash ./scripts/unittest.sh -g --arch=${{ matrix.arch }} --dispatch=${{ matrix.dispatch }}
+
+      - name: Run Test Use CMake
+        if: matrix.tool == 'cmake'
+        run: |
+          bash ./scripts/run_cmake.sh

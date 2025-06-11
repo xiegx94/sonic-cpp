@@ -19,7 +19,7 @@
 #include <string>
 
 #include "sonic/dom/type.h"
-#include "sonic/internal/haswell.h"
+#include "sonic/internal/arch/simd_base.h"
 #include "sonic/string_view.h"
 #include "sonic/writebuffer.h"
 
@@ -80,7 +80,7 @@ class SAXHandler {
       cap_ = cap;
     }
     return true;
-  };
+  }
 
   sonic_force_inline void TearDown() {
     if (st_ == nullptr) return;
@@ -89,12 +89,12 @@ class SAXHandler {
     }
     std::free(st_);
     st_ = nullptr;
-  };
+  }
 
 #define SONIC_ADD_NODE()       \
-  {                            \
+  do {                         \
     if (!node()) return false; \
-  }
+  } while (0)
 
   sonic_force_inline bool Null() noexcept {
     SONIC_ADD_NODE();
@@ -153,7 +153,7 @@ class SAXHandler {
     if (pairs) {
       void *mem = obj.template containerMalloc<MemberType>(pairs, *alloc_);
       obj.setChildren(mem);
-      internal::haswell::xmemcpy<sizeof(MemberType)>(
+      internal::Xmemcpy<sizeof(MemberType)>(
           (void *)obj.getObjChildrenFirstUnsafe(), (void *)(&obj + 1), pairs);
     } else {
       obj.setChildren(nullptr);
@@ -169,7 +169,7 @@ class SAXHandler {
     arr.setLength(count, kArray);
     if (count) {
       arr.setChildren(arr.template containerMalloc<NodeType>(count, *alloc_));
-      internal::haswell::xmemcpy<sizeof(NodeType)>(
+      internal::Xmemcpy<sizeof(NodeType)>(
           (void *)arr.getArrChildrenFirstUnsafe(), (void *)(&arr + 1), count);
     } else {
       arr.setChildren(nullptr);
@@ -239,7 +239,7 @@ class LazySAXHandler {
     arr.setLength(count, kArray);
     if (count) {
       arr.setChildren(arr.template containerMalloc<NodeType>(count, *alloc_));
-      internal::haswell::xmemcpy<sizeof(NodeType)>(
+      internal::Xmemcpy<sizeof(NodeType)>(
           (void *)arr.getArrChildrenFirstUnsafe(), (void *)(&arr + 1), count);
       stack_.Pop<NodeType>(count);
     } else {
@@ -254,7 +254,7 @@ class LazySAXHandler {
     if (pairs) {
       void *mem = obj.template containerMalloc<MemberType>(pairs, *alloc_);
       obj.setChildren(mem);
-      internal::haswell::xmemcpy<sizeof(MemberType)>(
+      internal::Xmemcpy<sizeof(MemberType)>(
           (void *)obj.getObjChildrenFirstUnsafe(), (void *)(&obj + 1), pairs);
       stack_.Pop<MemberType>(pairs);
     } else {
@@ -282,8 +282,7 @@ class LazySAXHandler {
   static constexpr size_t kDefaultNum = 16;
   // allocator for node stack and string buffers
   Allocator *alloc_{nullptr};
-  // TODO: abstract the stack
-  WriteBuffer stack_{};
+  internal::Stack stack_{};
 };
 
 }  // namespace sonic_json

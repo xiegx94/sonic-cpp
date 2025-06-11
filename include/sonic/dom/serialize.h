@@ -20,9 +20,9 @@
 #include "sonic/dom/flags.h"
 #include "sonic/dom/type.h"
 #include "sonic/error.h"
+#include "sonic/internal/arch/simd_quote.h"
 #include "sonic/internal/ftoa.h"
 #include "sonic/internal/itoa.h"
-#include "sonic/internal/quote.h"
 #include "sonic/writebuffer.h"
 
 namespace sonic_json {
@@ -51,7 +51,7 @@ sonic_force_inline SonicError SerializeImpl(const NodeType* node,
   long inc_len;
   const char* str_ptr;
   ssize_t rn = 0;
-  WriteBuffer stk;
+  internal::Stack stk;
   ParentCtx* parent;
 
   wb.Clear();
@@ -105,7 +105,7 @@ val_begin:
       wb.PushSizeUnsafe<char>(rn);
       wb.PushUnsafe<char>(',');
       break;
-    };
+    }
     case kBool: {
       wb.Push5_8(node->IsFalse() ? "false,  " : "true,   ",
                  5 + node->IsFalse());
@@ -147,13 +147,13 @@ val_begin:
     case kRaw: {
       str_len = node->Size();
       wb.Grow(str_len + 1);
-      wb.PushUnsafe(node->GetStringView().data(), str_len);
+      wb.PushUnsafe(node->GetRaw().data(), str_len);
       wb.PushUnsafe<char>(',');
       break;
     }
     default:
       goto type_err;
-  };
+  }
   val_cnt--;
   if (sonic_likely(val_cnt != 0)) {
     node = node->next();

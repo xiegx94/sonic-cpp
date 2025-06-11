@@ -78,5 +78,33 @@ TEST(WriteBuffer, ToString) {
     wb.Push<char>('c');
     EXPECT_STREQ(wb.ToString(), "c");
   }
+  {
+    const WriteBuffer cwb;
+    EXPECT_STREQ(cwb.ToString(), "");
+  }
+  {
+    WriteBuffer wb;
+    wb.Push<char>('c');
+    const WriteBuffer cwb = std::move(wb);
+    EXPECT_STREQ(cwb.ToString(), "c");
+  }
+}
+
+TEST(WriteBuffer, StringSize) {
+  {
+    WriteBuffer wb;
+    wb.Push<char>('c');
+    auto s = std::string(wb.ToString(), wb.Size());
+    EXPECT_EQ(wb.Size(), 1);
+    EXPECT_EQ(s.size(), 1);
+    EXPECT_STREQ(s.c_str(), "c");
+  }
+  {
+    WriteBuffer wb;
+    auto s = std::string(wb.ToString(), wb.Size());
+    EXPECT_EQ(wb.Size(), 0);
+    EXPECT_EQ(s.size(), 0);
+    EXPECT_STREQ(s.c_str(), "");
+  }
 }
 }  // namespace

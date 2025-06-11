@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema#
+name: Test Coverage
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+    env:
+      GCC_VERSION: 12
+
+    steps:
+      - name: Checkout codebase
+        uses: actions/checkout@v4
+
+      - name: Setup bazel
+        uses: jwlawson/actions-setup-bazel@v2
+        with:
+          bazel-version: "latest"
+
+      - name: Setup GCC
+        run: |
+          sudo apt-get install -y gcc-12 g++-12
+      - name: Install lcov
+        run: |
+          sudo apt install lcov
+
+      - name: Coverage
+        run: |
+          bash ./scripts/run_coverage.sh
+          genhtml --output bazel-coverage-html ./coverage.dat
+
+      - name: upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            bazel-coverage-html
+            coverage.dat
+
+      - name: Upload coverage to CodeCov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.dat
+          verbose: true

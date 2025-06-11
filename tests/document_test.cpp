@@ -16,6 +16,7 @@
 
 #include <dirent.h>
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -264,8 +265,11 @@ class DocumentTest : public testing::Test {
 
 using DynSimpleDom = GenericDocument<DNode<SimpleAllocator>>;
 using DynMempoolDom = GenericDocument<DNode<MemoryPoolAllocator<>>>;
+using DynAdaptiveMempoolDom = GenericDocument<DNode<
+    MemoryPoolAllocator<SimpleAllocator, sonic_json::AdaptiveChunkPolicy>>>;
 
-using DomTypes = testing::Types<DynMempoolDom, DynSimpleDom>;
+using DomTypes =
+    testing::Types<DynMempoolDom, DynSimpleDom, DynAdaptiveMempoolDom>;
 TYPED_TEST_SUITE(DocumentTest, DomTypes);
 
 TYPED_TEST(DocumentTest, Parse) {
@@ -280,7 +284,7 @@ TYPED_TEST(DocumentTest, Parse) {
   constexpr static bool kNoError = false;
   constexpr static bool kError = true;
   std::vector<ParseTest> tests = {
-      // test valid json
+      // test valid JSON
       {"true", &Document::IsTrue, kNoError},
       {"false", &Document::IsFalse, kNoError},
       {"null", &Document::IsNull, kNoError},
@@ -293,7 +297,14 @@ TYPED_TEST(DocumentTest, Parse) {
       {"123", &Document::IsUint64, kNoError},
       {"-123", &Document::IsInt64, kNoError},
       {"0.000e0", &Document::IsDouble, kNoError},
+
+      // test invalid JSON
       {"", &Document::IsNull, kError},
+      {std::string(1000, ' '), &Document::IsNull, kError},
+      {"\"string", &Document::IsNull, kError},
+      {"\"", &Document::IsNull, kError},
+      {"\"" + std::string(1000, ' '), &Document::IsNull, kError},
+      {"\" \"\"", &Document::IsNull, kError},
       {"1.", &Document::IsNull, kError},
       {"truef", &Document::IsNull, kError},
       {"true:", &Document::IsNull, kError},
@@ -381,7 +392,7 @@ TYPED_TEST(DocumentTest, ParseOnDemandFile) {
   static SimpleAllocator alloc_g;
   struct NodeWrapper {
     NodeWrapper() = default;
-    NodeWrapper(CNode&& node) : node(std::move(node)){};
+    NodeWrapper(CNode&& node) : node(std::move(node)) {}
     NodeWrapper(const NodeWrapper& rhs) : node(CNode(rhs.node, alloc_g)) {}
     NodeWrapper(NodeWrapper&&) = default;
     ~NodeWrapper() = default;

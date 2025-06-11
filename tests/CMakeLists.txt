@@ -14,6 +14,7 @@ endif()
 FetchContent_Declare(
   googletest
   # Specify the commit you depend on and update it regularly.
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   URL https://github.com/google/googletest/archive/5376968f6948923e2411081fd9372e71a59d8e77.zip
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
@@ -28,6 +29,12 @@ add_executable(unittest ${SONIC_TEST_FILES})
 target_compile_features(unittest PRIVATE cxx_std_11)
 target_link_libraries(unittest PRIVATE gtest_main)
 target_include_directories(unittest PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR})
-target_compile_options(unittest PRIVATE -O1 -g -mavx2 -mpclmul -mbmi -mlzcnt -fsanitize=address -Werror -Wall)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(unittest PRIVATE -O0 -g -fsanitize=address -Werror -Wall -Wextra-semi -Wextra-semi-stmt -Wcomma)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(unittest PRIVATE -O0 -g -fsanitize=address -Werror -Wall)
+endif()
+include("${PROJECT_SOURCE_DIR}/cmake/set_arch_flags.cmake")
+set_arch_flags(unittest ${CMAKE_SYSTEM_PROCESSOR})
 target_link_options(unittest PRIVATE -fsanitize=address)
 add_test(NAME sonic-unittest COMMAND unittest)
